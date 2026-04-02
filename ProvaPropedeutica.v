@@ -1,3 +1,4 @@
+//Half adder: svolge la somma di due bit e restituisce il risultato e l'eventuale carry relativo
 module half_adder(a, b, carry, sum);
 
 input a, b;
@@ -8,6 +9,7 @@ assign carry = a & b;
 
 endmodule
 
+//Full adder: svolge la somma di tre bit e restituisce il risultato e l'eventuale carry finale.
 module full_adder(a, b, c, sum, cout);
 
 input a, b, c;
@@ -21,6 +23,9 @@ assign cout = carry1 | carry2;
 
 endmodule
 
+/*Adder a 4 bit: svolge la somma di due numeri a 4 bit (+ eventuale carry relativo dell'operazione precedente) e restituisce
+il risultato e l'eventuale carry relativo + un potenziale errore di overflow che nel caso del sommatore ecc3 non viene considerato in quanto
+l'errore non è rilevante.*/
 module four_bit_adder(
     input wire [3:0] a, b,
     input wire cin,
@@ -41,6 +46,8 @@ assign cout = carry3;
 
 endmodule
 
+/*Digit corrector: ritorna in uscita il risultato "corretto" di una somma a 4 bit in eccesso 3, ottenuto sommando o sottraendo 3 al numero
+ricevuto in ingresso se nella somma relativa è presente o meno un carry in uscita.*/
 module digit_corrector (
     input [3:0] sum_res,
     input carry,
@@ -56,16 +63,49 @@ module digit_corrector (
 
 endmodule
 
+
+//Complementer: dati 4 bit in ingresso, si occupa di ritornare in uscita il complementare binario per ognuno di essi.
+module bits_complementer (
+    input [3:0] a,
+    output [3:0] a_comp
+);
+
+    assign a_comp[0] = !a[0];
+    assign a_comp[1] = !a[1];
+    assign a_comp[2] = !a[2];
+    assign a_comp[3] = !a[3];
+
+endmodule
+
+
+//
+module ecc3_number_complementer(
+    input [3:0] a,
+    output [3:0] a_comp
+);
+
+    wire [3:0] a_bits_comp, temp_sum;
+    wire sum_cout;
+
+    bits_complementer bc (.a(a), .a_comp(a_bits_comp));
+    four_bit_adder fba (.a(a_bits_comp), .b(4'b0100), .cin(1'b0), .sum(temp_sum), .cout(sum_cout), .error());
+    digit_corrector dc (.sum_res(temp_sum), .carry(sum_cout), .correction(a_comp));
+
+endmodule
+
+//Scrivere che c'è il cout e il cin per poter espandere il circuito a più cifre
 module adder_ecc3_single_digit(
     input [3:0] a, b,
     input cin,
+    //input sel,
     output [3:0] sum,
     output cout
+    //output sign
 );
 
     wire [3:0] temp_sum;
 
-    four_bit_adder fba0 (.a(a), .b(b), .cin(cin), .sum(temp_sum), .cout(cout), .error());
-    digit_corrector dc0 (.sum_res(temp_sum), .carry(cout), .correction(sum));
+    four_bit_adder fba (.a(a), .b(b), .cin(cin), .sum(temp_sum), .cout(cout), .error());
+    digit_corrector dc (.sum_res(temp_sum), .carry(cout), .correction(sum));
     
 endmodule
