@@ -46,9 +46,22 @@ assign cout = carry3;
 
 endmodule
 
+//Complementer: dati 4 bit in ingresso, si occupa di ritornare in uscita il complementare binario per ognuno di essi.
+module bits_complementer (
+    input [3:0] a,
+    output [3:0] a_comp
+);
+
+    assign a_comp[0] = !a[0];
+    assign a_comp[1] = !a[1];
+    assign a_comp[2] = !a[2];
+    assign a_comp[3] = !a[3];
+
+endmodule
+
 /*Digit corrector: ritorna in uscita il risultato "corretto" di una somma a 4 bit in eccesso 3, ottenuto sommando o sottraendo 3 al numero
 ricevuto in ingresso se nella somma relativa è presente o meno un carry in uscita.*/
-module digit_corrector (
+module ecc3_digit_corrector (
     input [3:0] sum_res,
     input carry,
     output [3:0] correction
@@ -63,49 +76,53 @@ module digit_corrector (
 
 endmodule
 
-
-//Complementer: dati 4 bit in ingresso, si occupa di ritornare in uscita il complementare binario per ognuno di essi.
-module bits_complementer (
-    input [3:0] a,
-    output [3:0] a_comp
-);
-
-    assign a_comp[0] = !a[0];
-    assign a_comp[1] = !a[1];
-    assign a_comp[2] = !a[2];
-    assign a_comp[3] = !a[3];
-
-endmodule
-
-
-//
-module ecc3_number_complementer(
-    input [3:0] a,
-    output [3:0] a_comp
-);
-
-    wire [3:0] a_bits_comp, temp_sum;
-    wire sum_cout;
-
-    bits_complementer bc (.a(a), .a_comp(a_bits_comp));
-    four_bit_adder fba (.a(a_bits_comp), .b(4'b0100), .cin(1'b0), .sum(temp_sum), .cout(sum_cout), .error());
-    digit_corrector dc (.sum_res(temp_sum), .carry(sum_cout), .correction(a_comp));
-
-endmodule
-
-//Scrivere che c'è il cout e il cin per poter espandere il circuito a più cifre
-module adder_ecc3_single_digit(
+/*Ecc3 single digit adder: si occupa di sommare due numeri in input in eccezione 3 e di tornare in output la 
+somma in eccezzione 3 già corretta. Per quanto riguarda il cin e il cout, sono stati aggiunti per scalabilità
+se il circuito dovesse mai venir espanso a più cifre.*/
+module ecc3_single_digit_adder(
     input [3:0] a, b,
     input cin,
-    //input sel,
     output [3:0] sum,
     output cout
-    //output sign
+);
+
+    wire [3:0] temp_sum;
+
+    four_bit_adder adder (.a(a), .b(b), .cin(cin), .sum(temp_sum), .cout(cout), .error());
+    ecc3_digit_corrector corrector (.sum_res(temp_sum), .carry(cout), .correction(sum));
+    
+endmodule
+
+/*First Digit Complementer: si occupa, dati 4 bit in ingresso, di tornare in uscita il complementare del rispettivo
+numero associato in eccesso 3. Il codice vale esclusivamente se la cifra trattata è quella meno significativa
+di un potenziale numero a più cifre, infatti viene effettuata una somma per 4 in ecceso 3 e non per 3 come
+verrebbe invece fatto per le ulteriori cifre. Il cout è stato aggiunto per un puro motivo di scalabilità se 
+mai si volesse estendere il circuito a più cifre.*/
+module ecc3_first_digit_complementer(
+    input [3:0] a,
+    output [3:0] a_comp,
+    output cout
+);
+
+    wire [3:0] a_bits_comp;
+
+    bits_complementer complementer (.a(a), .a_comp(a_bits_comp));
+    ecc3_single_digit_adder ecc3_adder (.a(a_bits_comp), .b(4'b0100), .cin(1'b0), .sum(a_comp), .cout(cout));
+
+endmodule
+
+/*module ecc3_complete_adder_single_digit(
+    input [3:0] a, b,
+    input cin,
+    input sel,
+    output [3:0] sum,
+    output cout
+    output sign
 );
 
     wire [3:0] temp_sum;
 
     four_bit_adder fba (.a(a), .b(b), .cin(cin), .sum(temp_sum), .cout(cout), .error());
-    digit_corrector dc (.sum_res(temp_sum), .carry(cout), .correction(sum));
+    ecc3_digit_corrector dc (.sum_res(temp_sum), .carry(cout), .correction(sum));
     
-endmodule
+endmodule*/
