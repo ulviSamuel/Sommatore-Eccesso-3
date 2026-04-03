@@ -79,7 +79,7 @@ endmodule
 /*Ecc3 single digit adder: si occupa di sommare due numeri in input in eccezione 3 e di tornare in output la 
 somma in eccezzione 3 già corretta. Per quanto riguarda il cin e il cout, sono stati aggiunti per scalabilità
 se il circuito dovesse mai venir espanso a più cifre.*/
-module ecc3_single_digit_adder(
+module ecc3_single_digit_adder (
     input [3:0] a, b,
     input cin,
     output [3:0] sum,
@@ -93,12 +93,13 @@ module ecc3_single_digit_adder(
     
 endmodule
 
-/*First Digit Complementer: si occupa, dati 4 bit in ingresso, di tornare in uscita il complementare del rispettivo
+/*Less Significant Digit Complementer: si occupa, dati 4 bit in ingresso, di tornare in uscita il complementare del rispettivo
 numero associato in eccesso 3. Il codice vale esclusivamente se la cifra trattata è quella meno significativa
 di un potenziale numero a più cifre, infatti viene effettuata una somma per 4 in ecceso 3 e non per 3 come
 verrebbe invece fatto per le ulteriori cifre. Il cout è stato aggiunto per un puro motivo di scalabilità se 
-mai si volesse estendere il circuito a più cifre.*/
-module ecc3_first_digit_complementer(
+mai si volesse estendere il circuito a più cifre. Il cin non è stato implementato perché trattandosi del
+complemento della prima cifra, non è possibile avere un cin.*/
+module ecc3_ls_digit_complementer (
     input [3:0] a,
     output [3:0] a_comp,
     output cout
@@ -111,7 +112,33 @@ module ecc3_first_digit_complementer(
 
 endmodule
 
-/*module ecc3_complete_adder_single_digit(
+/*Single digit subtractor:  si occupa di sottrarre due numeri in input in eccezione 3 e di tornare in output la 
+somma in eccezzione 3 già corretta. Nota che il cin e il cout non sono stati implementati per due ragioni distinte.
+Il cin non è stato implementato in quanto il modulo è fortemente dipendente dal complemento con somma 1 valido solo
+per la cifra meno significativa di un evenetuale numero decimale a più cifre. Di conseguenza non è possibile avere cifre
+e quindi eventuali carry, precedenti al numero qui preso in considerazione.
+Per quanto riguarda il cout, non è stato implementato in quanto la scelta progettuale di dover decidere il segno del
+risultato alla fine dell'eventuale prima sottr., non sarebbe stata adatta alla logica applicata ad una sottr. multipla.
+Per convenzione inoltre lo 0 è stato dichiarato sempre positivo e il segno positivo corrisponde a is_positive = 1*/
+module ecc3_single_digit_subtractor (
+    input [3:0] a, b,
+    output [3:0] sub,
+    output is_positive
+);
+
+    wire [3:0] b_comp, positive_sub, negative_sub;
+    wire temp_sign;
+
+    ecc3_ls_digit_complementer a_comp (.a(b), .a_comp(b_comp), .cout());
+    ecc3_single_digit_adder ecc3_adder (.a(a), .b(b_comp), .cin(1'b0), .sum(positive_sub), .cout(temp_sign));
+    ecc3_ls_digit_complementer res_comp (.a(positive_sub), .a_comp(negative_sub), .cout());
+    
+    assign is_positive = (!temp_sign & !b[3] & !b[2] & b[1] & b[0]) ? 1'b1 : temp_sign;
+    assign sub = is_positive ? positive_sub : negative_sub;
+
+endmodule
+
+/*module ecc3_complete_adder_single_digit (
     input [3:0] a, b,
     input cin,
     input sel,
