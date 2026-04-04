@@ -1,4 +1,4 @@
-//Half adder: svolge la somma di due bit e restituisce il risultato e l'eventuale carry relativo
+//Half adder: svolge la somma di due bit e restituisce il risultato e l'eventuale carry relativo.
 module half_adder(a, b, carry, sum);
 
 input a, b;
@@ -9,11 +9,12 @@ assign carry = a & b;
 
 endmodule
 
-//Full adder: svolge la somma di tre bit e restituisce il risultato e l'eventuale carry finale.
+//Full adder: esegue la somma di tre bit e restituisce il risultato e l'eventuale carry finale.
 module full_adder(a, b, c, sum, cout);
 
 input a, b, c;
 output sum, cout;
+
 wire tsum, carry1, carry2;
 
 half_adder ha0 (.a(a), .b(b), .carry(carry1), .sum(tsum));
@@ -23,8 +24,8 @@ assign cout = carry1 | carry2;
 
 endmodule
 
-/*Adder a 4 bit: svolge la somma di due numeri a 4 bit (+ eventuale carry relativo dell'operazione precedente) e restituisce
-il risultato e l'eventuale carry relativo + un potenziale errore di overflow che nel caso del sommatore ecc3 non viene considerato in quanto
+/*Adder a 4 bit: svolge la somma di due numeri a 4 bit (più eventuale carry relativo dell'operazione precedente) e restituisce
+il risultato e l'eventuale carry relativo più un potenziale errore di overflow che nel caso del sommatore ecc3 non viene considerato in quanto
 l'errore non è rilevante.*/
 module four_bit_adder(
     input wire [3:0] a, b,
@@ -113,10 +114,10 @@ module ecc3_ls_digit_complementer (
 endmodule
 
 /*Single digit subtractor:  si occupa di sottrarre due numeri in input in eccezione 3 e di tornare in output la 
-somma in eccezzione 3 già corretta. Nota che il cin e il cout non sono stati implementati per due ragioni distinte.
-Il cin non è stato implementato in quanto il modulo è fortemente dipendente dal complemento con somma 1 valido solo
+sottr. in eccezzione 3 già corretta. Nota che il cin e il cout non sono stati implementati per due ragioni distinte.
+Il cin non è stato implementato in quanto il modulo è fortemente dipendente dal complemento con somma 4 valido solo
 per la cifra meno significativa di un evenetuale numero decimale a più cifre. Di conseguenza non è possibile avere cifre
-e quindi eventuali carry, precedenti al numero qui preso in considerazione.
+(e quindi eventuali carry) precedenti al numero qui preso in considerazione.
 Per quanto riguarda il cout, non è stato implementato in quanto la scelta progettuale di dover decidere il segno del
 risultato alla fine dell'eventuale prima sottr., non sarebbe stata adatta alla logica applicata ad una sottr. multipla.
 Per convenzione inoltre lo 0 è stato dichiarato sempre positivo e il segno positivo corrisponde a is_positive = 1*/
@@ -133,23 +134,32 @@ module ecc3_single_digit_subtractor (
     ecc3_single_digit_adder ecc3_adder (.a(a), .b(b_comp), .cin(1'b0), .sum(positive_sub), .cout(temp_sign));
     ecc3_ls_digit_complementer res_comp (.a(positive_sub), .a_comp(negative_sub), .cout());
     
-    assign is_positive = (!temp_sign & !b[3] & !b[2] & b[1] & b[0]) ? 1'b1 : temp_sign;
+    assign is_positive = temp_sign | (!b[3] & !b[2] & b[1] & b[0]);
     assign sub = is_positive ? positive_sub : negative_sub;
 
 endmodule
 
-/*module ecc3_complete_adder_single_digit (
+
+/*Single Digit Subadder: il modulo si occupa, date due cifre in eccesso 3 in input e dato un bit di sel a indicare se si voglia svolgere
+l'operazione di somma o sottrazione (0 somma, 1 sottr.), di sommare i due numeri e di tornarne in output il risultato associato al suo segno,
+più un eventuale errore di overflow. Non sono stati introdotti segnali di cin e cout per gli stessi motivi di scalabilità prima elencati.
+Anche per questi motivi, il cout della somma è stato trattato come segnale di overflow.*/
+module ecc3_single_digit_subadder (
     input [3:0] a, b,
-    input cin,
     input sel,
-    output [3:0] sum,
-    output cout
-    output sign
+    output [3:0] result,
+    output is_positive,
+    output error
 );
 
-    wire [3:0] temp_sum;
+    wire [3:0] sum, sub;
+    wire temp_sign, sum_cout;
 
-    four_bit_adder fba (.a(a), .b(b), .cin(cin), .sum(temp_sum), .cout(cout), .error());
-    ecc3_digit_corrector dc (.sum_res(temp_sum), .carry(cout), .correction(sum));
-    
-endmodule*/
+    ecc3_single_digit_subtractor subtractor (.a(a), .b(b), .sub(sub), .is_positive(temp_sign));
+    ecc3_single_digit_adder adder (.a(a), .b(b), .cin(1'b0), .sum(sum), .cout(sum_cout));
+
+    assign is_positive = !sel | temp_sign;
+    assign result = sel ? sub : sum;
+    assign error = !sel & sum_cout;
+
+endmodule
