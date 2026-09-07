@@ -1,4 +1,4 @@
-# Sommatore Eccesso-3
+# Excess-3 Adder
 
 ![Verilog](https://img.shields.io/badge/HDL-Verilog-2f2f2f)
 ![Category](https://img.shields.io/badge/Category-Digital%20Logic-2f2f2f)
@@ -53,4 +53,4 @@ To evaluate the design, a Verilog simulator and an external testbench would be r
 
 ## License
 
-No license file or explicit license statement is present in the repository.
+This project is shared for educational and portfolio purposes. All rights reserved unless otherwise stated.
